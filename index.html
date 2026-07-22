@@ -29,7 +29,7 @@
     label{display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px}
     .form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
     .canvas-wrap{position:relative;background:#0f172a;border-radius:12px;overflow:hidden;min-height:360px;display:flex;align-items:center;justify-content:center}
-    #imageCanvas{max-width:100%;height:auto;display:block;touch-action:none;cursor:crosshair}
+    #imageCanvas{max-width:100%;height:auto;display:block;touch-action:none;cursor:grab}
     .hint{font-size:12px;color:var(--muted);margin-top:8px}
     .status{font-size:13px;padding:9px 11px;background:#f1f5f9;border-radius:8px;color:#334155}
     .charts{display:grid;gap:12px}
@@ -66,8 +66,8 @@
       <div class="controls">
         <label class="btn" for="fileInput">사진 업로드</label>
         <input id="fileInput" type="file" accept="image/*" capture="environment" hidden>
-        <button id="fullRoiBtn" class="light">전체 ROI</button>
-        <button id="clearRoiBtn" class="secondary">ROI 초기화</button>
+        <button id="centerRoiBtn" class="light">ROI 중앙 배치</button>
+        <button id="resetPositionBtn" class="secondary">위치 초기화</button>
         <select id="profileDirection" style="width:auto">
           <option value="horizontal">가로 평균 프로파일</option>
           <option value="vertical">세로 평균 프로파일</option>
@@ -78,10 +78,24 @@
           <option value="max">최댓값 기준</option>
         </select>
       </div>
+      <div class="card" style="margin-top:12px;padding:12px;background:#f8fafc">
+        <h3 style="margin-top:0">고정 ROI 크기</h3>
+        <div class="form-grid">
+          <div><label>ROI 폭 W (px)</label><input id="roiW" type="number" min="1" step="1" value="300"></div>
+          <div><label>ROI 높이 H (px)</label><input id="roiH" type="number" min="1" step="1" value="120"></div>
+          <div><label>현재 X</label><input id="roiX" type="number" min="0" step="1" value="0" readonly></div>
+          <div><label>현재 Y</label><input id="roiY" type="number" min="0" step="1" value="0" readonly></div>
+        </div>
+        <div class="controls" style="margin-top:10px">
+          <button id="applyRoiSizeBtn">ROI 크기 적용</button>
+          <button id="saveRoiSizeBtn" class="secondary">ROI 크기 저장</button>
+        </div>
+        <div class="hint">ROI의 폭과 높이는 모든 사진에서 동일하게 유지됩니다. 사진마다 ROI 상자를 드래그해 위치만 조정하세요.</div>
+      </div>
       <div class="canvas-wrap" style="margin-top:12px">
         <canvas id="imageCanvas"></canvas>
       </div>
-      <div class="hint">이미지 위에서 마우스 또는 손가락으로 드래그해 ROI를 지정하세요.</div>
+      <div class="hint">청록색 ROI 상자를 마우스 또는 손가락으로 드래그해 위치만 조정하세요. 크기는 고정됩니다.</div>
       <div id="roiStatus" class="status" style="margin-top:10px">이미지를 업로드하세요.</div>
     </div>
 
@@ -163,6 +177,48 @@
   let displayProfile = null;
   let features = {};
   let records = loadRecords();
+  let roiSize = loadRoiSize();
+  let dragOffset = null;
+
+  function loadRoiSize(){
+    try{
+      const saved = JSON.parse(localStorage.getItem('vrsdl_roi_size') || '{"w":300,"h":120}');
+      return {w:Math.max(1,Number(saved.w)||300), h:Math.max(1,Number(saved.h)||120)};
+    }catch{
+      return {w:300,h:120};
+    }
+  }
+
+  function syncRoiControls(){
+    $('roiW').value = Math.round(roiSize.w);
+    $('roiH').value = Math.round(roiSize.h);
+    $('roiX').value = roi ? Math.round(roi.x) : 0;
+    $('roiY').value = roi ? Math.round(roi.y) : 0;
+  }
+
+  function clampRoiPosition(x,y){
+    if(!image) return {x:0,y:0};
+    return {
+      x:Math.max(0,Math.min(canvas.width-roiSize.w,x)),
+      y:Math.max(0,Math.min(canvas.height-roiSize.h,y))
+    };
+  }
+
+  function placeRoiAt(x,y){
+    if(!image) return;
+    roiSize.w = Math.min(roiSize.w, canvas.width);
+    roiSize.h = Math.min(roiSize.h, canvas.height);
+    const p = clampRoiPosition(x,y);
+    roi = {x:p.x,y:p.y,w:roiSize.w,h:roiSize.h};
+    syncRoiControls();
+    drawImage();
+  }
+
+  function centerRoi(){
+    if(!image) return;
+    placeRoiAt((canvas.width-roiSize.w)/2,(canvas.height-roiSize.h)/2);
+    analyze();
+  }
 
   function loadRecords(){
     try { return JSON.parse(localStorage.getItem('vrsdl_records') || '[]'); }
@@ -206,9 +262,7 @@
     img.onload = () => {
       image = img;
       fitCanvasToImage(img);
-      roi = {x:0,y:0,w:canvas.width,h:canvas.height};
-      drawImage();
-      analyze();
+      centerRoi();
       URL.revokeObjectURL(url);
     };
     img.src = url;
@@ -224,29 +278,29 @@
   }
 
   function begin(e){
-    if(!image) return;
-    e.preventDefault();
-    dragging = true;
-    start = pointFromEvent(e);
-    roi = {x:start.x,y:start.y,w:0,h:0};
-    drawImage();
-  }
-  function move(e){
-    if(!dragging) return;
+    if(!image || !roi) return;
     e.preventDefault();
     const p = pointFromEvent(e);
-    roi = {
-      x: Math.min(start.x,p.x), y: Math.min(start.y,p.y),
-      w: Math.abs(p.x-start.x), h: Math.abs(p.y-start.y)
-    };
-    drawImage();
+    const inside = p.x>=roi.x && p.x<=roi.x+roi.w && p.y>=roi.y && p.y<=roi.y+roi.h;
+    if(!inside) return;
+    dragging = true;
+    dragOffset = {x:p.x-roi.x, y:p.y-roi.y};
+    canvas.style.cursor='grabbing';
   }
+
+  function move(e){
+    if(!dragging || !roi) return;
+    e.preventDefault();
+    const p = pointFromEvent(e);
+    placeRoiAt(p.x-dragOffset.x,p.y-dragOffset.y);
+  }
+
   function end(e){
     if(!dragging) return;
     e.preventDefault();
     dragging = false;
-    if(roi.w < 3 || roi.h < 3) roi = null;
-    drawImage();
+    dragOffset = null;
+    canvas.style.cursor='grab';
     analyze();
   }
 
@@ -257,15 +311,28 @@
   canvas.addEventListener('touchmove',move,{passive:false});
   canvas.addEventListener('touchend',end,{passive:false});
 
-  $('fullRoiBtn').onclick = () => {
+  $('centerRoiBtn').onclick = centerRoi;
+  $('resetPositionBtn').onclick = () => {
     if(!image) return;
-    roi = {x:0,y:0,w:canvas.width,h:canvas.height};
-    drawImage(); analyze();
+    placeRoiAt(0,0);
+    analyze();
   };
-  $('clearRoiBtn').onclick = () => {
-    roi = null; rawProfile = null; displayProfile = null; features = {};
-    drawImage(); drawChart(); renderFeatures();
-    $('roiStatus').textContent = 'ROI가 초기화되었습니다.';
+  $('applyRoiSizeBtn').onclick = () => {
+    const w=Math.max(1,Number($('roiW').value)||1);
+    const h=Math.max(1,Number($('roiH').value)||1);
+    roiSize={w,h};
+    if(image){
+      const cx=roi ? roi.x+roi.w/2 : canvas.width/2;
+      const cy=roi ? roi.y+roi.h/2 : canvas.height/2;
+      placeRoiAt(cx-w/2,cy-h/2);
+      analyze();
+    }
+    syncRoiControls();
+  };
+  $('saveRoiSizeBtn').onclick = () => {
+    $('applyRoiSizeBtn').click();
+    localStorage.setItem('vrsdl_roi_size',JSON.stringify(roiSize));
+    alert(`ROI 크기를 저장했습니다.\nW=${Math.round(roiSize.w)}, H=${Math.round(roiSize.h)}`);
   };
   $('profileDirection').onchange = analyze;
   $('normalization').onchange = analyze;
@@ -509,6 +576,7 @@
       Object.entries(counts).map(([k,v])=>`<span class="badge">${k} ${v}회</span>`).join('');
   }
 
+  syncRoiControls();
   renderDataset();
   renderFeatures();
   drawChart();
