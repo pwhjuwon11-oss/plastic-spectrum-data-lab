@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <title>가시광 RGB 스펙트럼 모델 재구축용 데이터 수집 시스템</title>
+  <style>
+    :root{
+      --bg:#f4f7f8; --card:#ffffff; --ink:#17212b; --muted:#64748b;
+      --line:#d9e2e8; --brand:#0f766e; --brand2:#14b8a6;
+      --danger:#b91c1c; --warn:#b45309; --ok:#166534;
+      --shadow:0 8px 24px rgba(15,23,42,.08); --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}
+    header{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#0f766e,#155e75);color:#fff;padding:18px 16px;box-shadow:0 4px 16px rgba(0,0,0,.16)}
+    .head-wrap{max-width:1200px;margin:auto;display:flex;gap:16px;align-items:center;justify-content:space-between}
+    h1{font-size:clamp(18px,2.2vw,28px);margin:0 0 4px}.subtitle{font-size:13px;opacity:.9}.badge{font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.45);padding:7px 10px;border-radius:999px;white-space:nowrap}
+    main{max-width:1200px;margin:20px auto;padding:0 14px 40px;display:grid;gap:16px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .card h2{font-size:18px;margin:0 0 14px}.card h3{font-size:15px;margin:18px 0 10px}
+    .notice{background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.55}
+    .grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}.head-wrap{align-items:flex-start}.badge{display:none}}
+    label{display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:5px}
+    input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px 11px;background:#fff;color:#111827}textarea{min-height:72px;resize:vertical}
+    input:focus,select:focus,textarea:focus{outline:3px solid rgba(20,184,166,.17);border-color:var(--brand2)}
+    .field-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.field-span2{grid-column:span 2}
+    @media(max-width:800px){.field-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:500px){.field-grid{grid-template-columns:1fr}.field-span2{grid-column:span 1}}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;background:#e2e8f0;color:#0f172a}.btn:hover{filter:brightness(.98)}.btn:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--brand);color:#fff}.secondary{background:#155e75;color:#fff}.danger{background:#fee2e2;color:var(--danger)}.outline{background:#fff;border:1px solid #cbd5e1}.small{padding:7px 10px;font-size:12px}
+    .upload{border:2px dashed #94a3b8;border-radius:14px;padding:18px;text-align:center;background:#f8fafc}.upload input{max-width:520px}
+    .canvas-wrap{position:relative;width:100%;min-height:300px;background:#0b1220;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-top:12px;touch-action:none}
+    #imageCanvas{display:block;max-width:100%;height:auto;cursor:crosshair}.canvas-help{position:absolute;left:10px;bottom:10px;background:rgba(15,23,42,.78);color:#fff;border-radius:8px;padding:7px 9px;font-size:12px;pointer-events:none}
+    .status{padding:10px 12px;border-radius:10px;background:#f1f5f9;font-size:13px;color:#334155;margin-top:10px}.status.ok{background:#dcfce7;color:var(--ok)}.status.warn{background:#fef3c7;color:var(--warn)}.status.error{background:#fee2e2;color:var(--danger)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{border:1px solid var(--line);border-radius:10px;padding:10px;background:#f8fafc}.stat b{display:block;font-size:17px;margin-top:3px}.stat span{font-size:11px;color:var(--muted)}
+    @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}}
+    .chart-box{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff;overflow:hidden}.chart-box canvas{width:100%;height:260px;display:block}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{padding:9px 10px;border-bottom:1px solid #e5e7eb;text-align:left}th{position:sticky;top:0;background:#f8fafc;z-index:1}tbody tr:hover{background:#f8fafc}.empty{text-align:center;color:#94a3b8;padding:24px}
+    .pill{display:inline-block;padding:3px 7px;border-radius:999px;background:#e2e8f0;font-size:11px;font-weight:700}.footer-note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+    .checkbox{display:flex;align-items:center;gap:7px}.checkbox input{width:auto}
+  </style>
+</head>
+<body>
+<header>
+  <div class="head-wrap">
+    <div>
+      <h1>가시광 RGB 스펙트럼 모델 재구축용 데이터 수집 시스템</h1>
+      <div class="subtitle">기존 FIJI 기반 판별값을 사용하지 않는 연구 데이터 수집 전용 버전</div>
+    </div>
+    <div class="badge">RGB SPECTRUM DATA LAB · V1.0</div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="notice">
+      이 버전은 재질을 예측하지 않습니다. 실제 재질이 확인된 시료의 RGB·Gray 프로파일과 특징값을 동일한 방식으로 수집하여 새 분류모델을 만드는 데 사용합니다.
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>1. 실험 정보 입력</h2>
+    <div class="field-grid">
+      <div><label for="productId">제품 ID</label><input id="productId" placeholder="예: PP_PRODUCT_01"></div>
+      <div><label for="sampleId">시료 ID *</label><input id="sampleId" placeholder="예: PP_01"></div>
+      <div><label for="material">실제 재질 *</label><select id="material"><option value="">선택</option><option>Blank</option><option>PP</option><option>PET</option><option>PS</option><option>PE</option><option>PC</option><option>기타</option><option>미상</option></select></div>
+      <div><label for="repeatNo">반복 번호 *</label><input id="repeatNo" type="number" min="1" value="1"></div>
+      <div><label for="lightSource">광원 *</label><input id="lightSource" value="LED_6500K" placeholder="예: LED_6500K"></div>
+      <div><label for="thickness">두께 (mm)</label><input id="thickness" type="number" min="0" step="0.01" placeholder="예: 0.10"></div>
+      <div><label for="appearance">투명도·색상</label><input id="appearance" placeholder="예: 투명, 무색"></div>
+      <div><label for="blankApplied">Blank 처리</label><select id="blankApplied"><option value="미적용">미적용</option><option value="적용">적용</option><option value="해당 없음">해당 없음</option></select></div>
+      <div class="field-span2"><label for="note">비고</label><textarea id="note" placeholder="촬영 조건이나 특이사항"></textarea></div>
+      <div><label for="profileDirection">프로파일 방향</label><select id="profileDirection"><option value="horizontal">가로 평균</option><option value="vertical">세로 평균</option></select></div>
+      <div><label for="normalizeMode">정규화 방식</label><select id="normalizeMode"><option value="minmax">Min-Max (0~1)</option><option value="max">최댓값 기준</option><option value="none">정규화 안 함</option></select></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>2. 이미지 업로드 및 ROI 설정</h2>
+      <div class="upload">
+        <input id="imageInput" type="file" accept="image/*">
+        <div class="footer-note">사진을 선택한 뒤 스펙트럼 영역을 마우스 또는 손가락으로 드래그해 ROI를 지정합니다.</div>
+      </div>
+      <div id="canvasWrap" class="canvas-wrap">
+        <canvas id="imageCanvas" width="900" height="500"></canvas>
+        <div class="canvas-help">드래그: ROI 새로 지정 · ROI 내부 드래그: 이동</div>
+      </div>
+      <div class="btn-row">
+        <button id="fullRoiBtn" class="btn outline" disabled>전체 영역 ROI</button>
+        <button id="analyzeBtn" class="btn primary" disabled>현재 ROI 분석</button>
+        <button id="resetBtn" class="btn outline" disabled>이미지 초기화</button>
+      </div>
+      <div id="imageStatus" class="status">아직 이미지가 선택되지 않았습니다.</div>
+    </div>
+
+    <div class="card">
+      <h2>3. 현재 측정 요약</h2>
+      <div class="stats">
+        <div class="stat"><span>원본 크기</span><b id="originalSize">-</b></div>
+        <div class="stat"><span>ROI 크기</span><b id="roiSize">-</b></div>
+        <div class="stat"><span>프로파일 점 수</span><b id="profileCount">-</b></div>
+        <div class="stat"><span>누적 측정 수</span><b id="datasetCount">0</b></div>
+      </div>
+      <h3>현재 측정 ID</h3>
+      <div id="measurementPreview" class="status">분석 후 생성됩니다.</div>
+      <h3>데이터 추가</h3>
+      <button id="addDataBtn" class="btn secondary" disabled>현재 결과를 데이터셋에 추가</button>
+      <div id="addStatus" class="status">먼저 이미지를 분석해 주세요.</div>
+      <div class="footer-note">같은 사진을 중복 추가하지 않도록 측정 ID와 파일명을 확인하세요.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>4. RGB·Gray 프로파일</h2>
+    <div class="chart-box"><canvas id="profileChart" width="1100" height="300"></canvas></div>
+    <div class="btn-row">
+      <button id="downloadCurrentProfileBtn" class="btn outline" disabled>현재 Profile CSV</button>
+      <button id="downloadCurrentFeatureBtn" class="btn outline" disabled>현재 특징값 CSV</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>5. 현재 특징값</h2>
+    <div class="table-wrap">
+      <table><thead><tr><th>특징값</th><th>구분</th><th>값</th><th>설명</th></tr></thead><tbody id="featureBody"><tr><td colspan="4" class="empty">분석 결과가 없습니다.</td></tr></tbody></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>6. 누적 데이터셋</h2>
+    <div class="btn-row">
+      <button id="downloadFeaturesBtn" class="btn primary" disabled>전체 특징값 CSV</button>
+      <button id="downloadProfilesBtn" class="btn primary" disabled>전체 Profile CSV</button>
+      <button id="exportBackupBtn" class="btn outline" disabled>데이터 백업 JSON</button>
+      <label class="btn outline" style="display:inline-flex;align-items:center;cursor:pointer">백업 불러오기<input id="importBackupInput" type="file" accept="application/json" hidden></label>
+      <button id="clearDatasetBtn" class="btn danger" disabled>전체 데이터 초기화</button>
+    </div>
+    <div class="table-wrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>#</th><th>측정 ID</th><th>시료</th><th>재질</th><th>반복</th><th>광원</th><th>파일</th><th>ROI</th><th>시각</th><th>삭제</th></tr></thead>
+        <tbody id="datasetBody"><tr><td colspan="10" class="empty">저장된 측정값이 없습니다.</td></tr></tbody>
+      </table>
+    </div>
+    <div class="footer-note">데이터는 현재 브라우저의 localStorage에 저장됩니다. 브라우저 데이터 삭제나 기기 변경에 대비해 실험 중간마다 CSV와 JSON 백업 파일을 내려받으세요.</div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+const APP_VERSION = 'RGB_SPECTRUM_DATA_LAB_V1.0';
+const STORAGE_KEY = 'rgbSpectrumResearchDatasetV1';
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  imageInput:$('imageInput'), imageCanvas:$('imageCanvas'), canvasWrap:$('canvasWrap'),
+  fullRoiBtn:$('fullRoiBtn'), analyzeBtn:$('analyzeBtn'), resetBtn:$('resetBtn'),
+  imageStatus:$('imageStatus'), originalSize:$('originalSize'), roiSize:$('roiSize'),
+  profileCount:$('profileCount'), datasetCount:$('datasetCount'), measurementPreview:$('measurementPreview'),
+  addDataBtn:$('addDataBtn'), addStatus:$('addStatus'), profileChart:$('profileChart'),
+  featureBody:$('featureBody'), datasetBody:$('datasetBody'),
+  downloadCurrentProfileBtn:$('downloadCurrentProfileBtn'), downloadCurrentFeatureBtn:$('downloadCurrentFeatureBtn'),
+  downloadFeaturesBtn:$('downloadFeaturesBtn'), downloadProfilesBtn:$('downloadProfilesBtn'),
+  exportBackupBtn:$('exportBackupBtn'), importBackupInput:$('importBackupInput'), clearDatasetBtn:$('clearDatasetBtn')
+};
+
+const ctx = els.imageCanvas.getContext('2d', {willReadFrequently:true});
+const chartCtx = els.profileChart.getContext('2d');
+
+let image = null;
+let fileName = '';
+let scale = 1;
+let roi = null; // canvas coordinates
+let dragging = false;
+let movingRoi = false;
+let dragStart = null;
+let roiStart = null;
+let currentResult = null;
+let dataset = loadDataset();
+
+function setStatus(el, text, type=''){
+  el.textContent = text;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+
+function loadDataset(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(err){
+    console.warn('데이터 불러오기 실패', err);
+    return [];
+  }
+}
+
+function saveDataset(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dataset));
+  renderDataset();
+}
+
+function drawImage(){
+  if(!image){
+    ctx.clearRect(0,0,els.imageCanvas.width,els.imageCanvas.height);
+    ctx.fillStyle='#0b1220'; ctx.fillRect(0,0,els.imageCanvas.width,els.imageCanvas.height);
+    ctx.fillStyle='#94a3b8'; ctx.font='16px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('이미지를 업로드해 주세요.',els.imageCanvas.width/2,els.imageCanvas.height/2);
+    return;
+  }
+  ctx.clearRect(0,0,els.imageCanvas.width,els.imageCanvas.height);
+  ctx.drawImage(image,0,0,els.imageCanvas.width,els.imageCanvas.height);
+  if(roi){
+    ctx.save();
+    ctx.fillStyle='rgba(20,184,166,.14)'; ctx.fillRect(roi.x,roi.y,roi.w,roi.h);
+    ctx.strokeStyle='#14b8a6'; ctx.lineWidth=3; ctx.setLineDash([8,5]); ctx.strokeRect(roi.x,roi.y,roi.w,roi.h);
+    ctx.setLineDash([]); ctx.fillStyle='#ffffff'; ctx.font='bold 12px sans-serif';
+    ctx.fillText(`ROI ${Math.round(roi.w/scale)}×${Math.round(roi.h/scale)} px`, roi.x+6, Math.max(16,roi.y-6));
+    ctx.restore();
+  }
+}
+
+function fitImageToCanvas(){
+  const maxW = Math.min(1100, Math.max(320, els.canvasWrap.clientWidth));
+  const maxH = 650;
+  scale = Math.min(maxW/image.naturalWidth, maxH/image.naturalHeight, 1);
+  els.imageCanvas.width = Math.max(1, Math.round(image.naturalWidth*scale));
+  els.imageCanvas.height = Math.max(1, Math.round(image.naturalHeight*scale));
+  roi = {x:Math.round(els.imageCanvas.width*.1), y:Math.round(els.imageCanvas.height*.25), w:Math.round(els.imageCanvas.width*.8), h:Math.round(els.imageCanvas.height*.5)};
+  drawImage(); updateRoiInfo();
+}
+
+els.imageInput.addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ setStatus(els.imageStatus,'이미지 파일만 선택할 수 있습니다.','error'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      image = img; fileName = file.name; currentResult = null;
+      fitImageToCanvas();
+      els.originalSize.textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+      els.fullRoiBtn.disabled = els.analyzeBtn.disabled = els.resetBtn.disabled = false;
+      els.addDataBtn.disabled = true;
+      els.downloadCurrentProfileBtn.disabled = els.downloadCurrentFeatureBtn.disabled = true;
+      setStatus(els.imageStatus,`불러온 파일: ${file.name}`,'ok');
+      setStatus(els.addStatus,'ROI를 확인한 뒤 분석해 주세요.');
+      resetAnalysisViews();
+    };
+    img.onerror = () => setStatus(els.imageStatus,'이미지를 읽지 못했습니다.','error');
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function pointerPos(e){
+  const r = els.imageCanvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {x:(clientX-r.left)*(els.imageCanvas.width/r.width), y:(clientY-r.top)*(els.imageCanvas.height/r.height)};
+}
+function insideRoi(p){ return roi && p.x>=roi.x && p.x<=roi.x+roi.w && p.y>=roi.y && p.y<=roi.y+roi.h; }
+function startPointer(e){
+  if(!image) return; e.preventDefault();
+  const p=pointerPos(e); dragging=true; dragStart=p;
+  movingRoi=insideRoi(p); roiStart=roi ? {...roi}:null;
+  if(!movingRoi) roi={x:p.x,y:p.y,w:0,h:0};
+}
+function movePointer(e){
+  if(!dragging || !image) return; e.preventDefault();
+  const p=pointerPos(e);
+  if(movingRoi && roiStart){
+    const dx=p.x-dragStart.x, dy=p.y-dragStart.y;
+    roi.x=Math.max(0,Math.min(els.imageCanvas.width-roi.w,roiStart.x+dx));
+    roi.y=Math.max(0,Math.min(els.imageCanvas.height-roi.h,roiStart.y+dy));
+  }else{
+    roi.x=Math.max(0,Math.min(dragStart.x,p.x)); roi.y=Math.max(0,Math.min(dragStart.y,p.y));
+    roi.w=Math.min(els.imageCanvas.width-roi.x,Math.abs(p.x-dragStart.x));
+    roi.h=Math.min(els.imageCanvas.height-roi.y,Math.abs(p.y-dragStart.y));
+  }
+  drawImage(); updateRoiInfo();
+}
+function endPointer(e){
+  if(!dragging) return; e.preventDefault(); dragging=false;
+  if(roi && (roi.w<5 || roi.h<5)) roi={x:0,y:0,w:els.imageCanvas.width,h:els.imageCanvas.height};
+  drawImage(); updateRoiInfo(); currentResult=null; els.addDataBtn.disabled=true;
+  setStatus(els.addStatus,'ROI가 변경되었습니다. 다시 분석해 주세요.','warn');
+}
+els.imageCanvas.addEventListener('mousedown',startPointer); window.addEventListener('mousemove',movePointer); window.addEventListener('mouseup',endPointer);
+els.imageCanvas.addEventListener('touchstart',startPointer,{passive:false}); window.addEventListener('touchmove',movePointer,{passive:false}); window.addEventListener('touchend',endPointer,{passive:false});
+
+$('fullRoiBtn').addEventListener('click',()=>{ if(!image)return; roi={x:0,y:0,w:els.imageCanvas.width,h:els.imageCanvas.height}; drawImage(); updateRoiInfo(); });
+$('resetBtn').addEventListener('click',()=>{ image=null; fileName=''; roi=null; currentResult=null; els.imageInput.value=''; els.fullRoiBtn.disabled=els.analyzeBtn.disabled=els.resetBtn.disabled=true; els.addDataBtn.disabled=true; els.downloadCurrentProfileBtn.disabled=els.downloadCurrentFeatureBtn.disabled=true; els.originalSize.textContent=els.roiSize.textContent=els.profileCount.textContent='-'; resetAnalysisViews(); drawImage(); setStatus(els.imageStatus,'아직 이미지가 선택되지 않았습니다.'); setStatus(els.addStatus,'먼저 이미지를 분석해 주세요.'); });
+
+function updateRoiInfo(){
+  if(!roi){els.roiSize.textContent='-';return;}
+  els.roiSize.textContent=`${Math.round(roi.w/scale)}×${Math.round(roi.h/scale)}`;
+}
+
+function normalize(arr, mode){
+  if(mode==='none') return arr.slice();
+  const min=Math.min(...arr), max=Math.max(...arr);
+  if(mode==='max') return max===0?arr.map(()=>0):arr.map(v=>v/max);
+  const d=max-min; return d===0?arr.map(()=>0):arr.map(v=>(v-min)/d);
+}
+function mean(a){return a.reduce((s,v)=>s+v,0)/Math.max(1,a.length)}
+function std(a){const m=mean(a); return Math.sqrt(mean(a.map(v=>(v-m)**2)))}
+function area(a){if(a.length<2)return a[0]||0;let s=0;for(let i=1;i<a.length;i++)s+=(a[i-1]+a[i])/2;return s/(a.length-1)}
+function slope(a){const n=a.length;if(n<2)return 0;let sx=0,sy=0,sxy=0,sxx=0;for(let i=0;i<n;i++){sx+=i;sy+=a[i];sxy+=i*a[i];sxx+=i*i}const d=n*sxx-sx*sx;return d===0?0:(n*sxy-sx*sy)/d}
+function quantileIndex(a, frac){return Math.max(0,Math.min(a.length-1,Math.round((a.length-1)*frac)))}
+function channelFeatures(name, raw, norm){
+  const maxRaw=Math.max(...raw), minRaw=Math.min(...raw), peakRaw=raw.indexOf(maxRaw);
+  const q1=quantileIndex(raw,.25), q2=quantileIndex(raw,.5), q3=quantileIndex(raw,.75);
+  return {
+    [`${name}_raw_mean`]:mean(raw), [`${name}_raw_std`]:std(raw), [`${name}_raw_min`]:minRaw, [`${name}_raw_max`]:maxRaw,
+    [`${name}_raw_range`]:maxRaw-minRaw, [`${name}_peak_position_ratio`]:raw.length>1?peakRaw/(raw.length-1):0,
+    [`${name}_norm_area`]:area(norm), [`${name}_norm_slope`]:slope(norm),
+    [`${name}_norm_q1`]:norm[q1], [`${name}_norm_median`]:norm[q2], [`${name}_norm_q3`]:norm[q3]
+  };
+}
+function extractProfile(){
+  const x=Math.max(0,Math.floor(roi.x/scale)), y=Math.max(0,Math.floor(roi.y/scale));
+  const w=Math.max(1,Math.min(image.naturalWidth-x,Math.round(roi.w/scale))), h=Math.max(1,Math.min(image.naturalHeight-y,Math.round(roi.h/scale)));
+  const off=document.createElement('canvas'); off.width=image.naturalWidth; off.height=image.naturalHeight;
+  const octx=off.getContext('2d',{willReadFrequently:true}); octx.drawImage(image,0,0);
+  const pixels=octx.getImageData(x,y,w,h).data;
+  const horizontal=$('profileDirection').value==='horizontal'; const len=horizontal?w:h;
+  const R=new Array(len).fill(0),G=new Array(len).fill(0),B=new Array(len).fill(0),Gray=new Array(len).fill(0);
+  const counts=new Array(len).fill(0);
+  for(let yy=0;yy<h;yy++) for(let xx=0;xx<w;xx++){
+    const i=(yy*w+xx)*4, p=horizontal?xx:yy, r=pixels[i],g=pixels[i+1],b=pixels[i+2];
+    R[p]+=r;G[p]+=g;B[p]+=b;Gray[p]+=0.299*r+0.587*g+0.114*b;counts[p]++;
+  }
+  for(let i=0;i<len;i++){R[i]/=counts[i];G[i]/=counts[i];B[i]/=counts[i];Gray[i]/=counts[i]}
+  const mode=$('normalizeMode').value;
+  return {roiOriginal:{x,y,w,h}, raw:{R,G,B,Gray}, norm:{R:normalize(R,mode),G:normalize(G,mode),B:normalize(B,mode),Gray:normalize(Gray,mode)}};
+}
+function makeFeatures(profile){
+  const f={}; ['R','G','B','Gray'].forEach(ch=>Object.assign(f,channelFeatures(ch,profile.raw[ch],profile.norm[ch])));
+  const rm=mean(profile.raw.R), gm=mean(profile.raw.G), bm=mean(profile.raw.B), eps=1e-9;
+  f.R_to_G_mean=rm/(gm+eps); f.R_to_B_mean=rm/(bm+eps); f.G_to_B_mean=gm/(bm+eps);
+  f.R_minus_G_mean=rm-gm; f.G_minus_B_mean=gm-bm; f.R_minus_B_mean=rm-bm;
+  f.profile_length=profile.raw.Gray.length;
+  return f;
+}
+
+$('analyzeBtn').addEventListener('click',()=>{
+  try{
+    if(!image||!roi) throw new Error('이미지와 ROI가 필요합니다.');
+    const p=extractProfile(); const features=makeFeatures(p); const measurementId=buildMeasurementId(false);
+    currentResult={profile:p,features,measurementId,analyzedAt:new Date().toISOString()};
+    els.profileCount.textContent=p.raw.Gray.length.toLocaleString(); els.measurementPreview.textContent=measurementId;
+    drawProfileChart(p); renderFeatures(features);
+    els.addDataBtn.disabled=false; els.downloadCurrentProfileBtn.disabled=els.downloadCurrentFeatureBtn.disabled=false;
+    setStatus(els.addStatus,'분석 완료. 실험 정보를 확인한 뒤 데이터셋에 추가하세요.','ok');
+  }catch(err){ setStatus(els.addStatus,err.message,'error'); }
+});
+
+function buildMeasurementId(withTimestamp=true){
+  const sample=cleanToken($('sampleId').value||'SAMPLE'); const repeat=cleanToken($('repeatNo').value||'1');
+  const stamp=timestampCompact(new Date()); return `${sample}_R${repeat}${withTimestamp?'_'+stamp:''}`;
+}
+function cleanToken(v){return String(v).trim().replace(/\s+/g,'-').replace(/[^0-9A-Za-z가-힣_-]/g,'')||'NA'}
+function timestampCompact(d){const z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}`}
+function metadata(){return {
+  app_version:APP_VERSION, measurement_id:buildMeasurementId(true), product_id:$('productId').value.trim(), sample_id:$('sampleId').value.trim(), material:$('material').value,
+  repeat_no:Number($('repeatNo').value), light_source:$('lightSource').value.trim(), thickness_mm:$('thickness').value.trim(), appearance:$('appearance').value.trim(),
+  blank_applied:$('blankApplied').value, note:$('note').value.trim(), source_filename:fileName, profile_direction:$('profileDirection').value,
+  normalization:$('normalizeMode').value, measured_at:new Date().toISOString()
+}}
+function validateMetadata(m){
+  if(!m.sample_id) return '시료 ID를 입력하세요.'; if(!m.material) return '실제 재질을 선택하세요.';
+  if(!m.repeat_no||m.repeat_no<1) return '반복 번호를 확인하세요.'; if(!m.light_source) return '광원을 입력하세요.'; return '';
+}
+
+$('addDataBtn').addEventListener('click',()=>{
+  if(!currentResult){setStatus(els.addStatus,'먼저 ROI를 분석하세요.','error');return;}
+  const meta=metadata(); const error=validateMetadata(meta); if(error){setStatus(els.addStatus,error,'error');return;}
+  const duplicate=dataset.some(d=>d.meta.measurement_id===meta.measurement_id);
+  if(duplicate){setStatus(els.addStatus,'동일한 측정 ID가 이미 존재합니다. 1초 후 다시 추가하거나 반복 번호를 확인하세요.','error');return;}
+  dataset.push({meta,roi:currentResult.profile.roiOriginal,features:currentResult.features,profile:currentResult.profile}); saveDataset();
+  currentResult.measurementId=meta.measurement_id; els.measurementPreview.textContent=meta.measurement_id;
+  setStatus(els.addStatus,`추가 완료: ${meta.measurement_id}`,'ok');
+});
+
+function featureGroup(k){if(k.includes('raw_'))return '원본';if(k.includes('norm_'))return '정규화';if(k.includes('_to_')||k.includes('_minus_'))return '채널 비교';return '기타'}
+function featureDescription(k){
+  if(k.endsWith('_raw_mean'))return '원본 채널 평균'; if(k.endsWith('_raw_std'))return '원본 채널 표준편차';
+  if(k.endsWith('_raw_min'))return '원본 최솟값'; if(k.endsWith('_raw_max'))return '원본 최댓값'; if(k.endsWith('_raw_range'))return '최대-최소 범위';
+  if(k.endsWith('_peak_position_ratio'))return '피크 위치를 0~1로 환산'; if(k.endsWith('_norm_area'))return '정규화 곡선 평균 면적';
+  if(k.endsWith('_norm_slope'))return '정규화 곡선 선형 기울기'; if(k.includes('_norm_q1'))return '25% 위치의 정규화 값';
+  if(k.includes('_norm_median'))return '50% 위치의 정규화 값'; if(k.includes('_norm_q3'))return '75% 위치의 정규화 값';
+  if(k.includes('_to_'))return '채널 평균의 비율'; if(k.includes('_minus_'))return '채널 평균의 차이'; if(k==='profile_length')return '프로파일 데이터 점 수'; return '';
+}
+function renderFeatures(features){
+  els.featureBody.innerHTML=Object.entries(features).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td><span class="pill">${featureGroup(k)}</span></td><td>${Number(v).toFixed(6)}</td><td>${featureDescription(k)}</td></tr>`).join('');
+}
+function resetAnalysisViews(){
+  els.featureBody.innerHTML='<tr><td colspan="4" class="empty">분석 결과가 없습니다.</td></tr>'; els.measurementPreview.textContent='분석 후 생성됩니다.'; els.profileCount.textContent='-';
+  chartCtx.clearRect(0,0,els.profileChart.width,els.profileChart.height); chartCtx.fillStyle='#94a3b8';chartCtx.font='15px sans-serif';chartCtx.textAlign='center';chartCtx.fillText('프로파일 그래프',els.profileChart.width/2,els.profileChart.height/2);
+}
+function drawProfileChart(profile){
+  const canvas=els.profileChart, w=canvas.width, h=canvas.height, pad={l:52,r:18,t:18,b:36}; chartCtx.clearRect(0,0,w,h); chartCtx.fillStyle='#fff';chartCtx.fillRect(0,0,w,h);
+  const data=profile.norm, names=['Gray','R','G','B']; const colors={Gray:'#111827',R:'#dc2626',G:'#16a34a',B:'#2563eb'};
+  let min=Infinity,max=-Infinity; names.forEach(n=>data[n].forEach(v=>{if(v<min)min=v;if(v>max)max=v})); if(max===min){max=min+1}
+  chartCtx.strokeStyle='#e2e8f0';chartCtx.lineWidth=1;chartCtx.font='11px sans-serif';chartCtx.fillStyle='#64748b';chartCtx.textAlign='right';
+  for(let i=0;i<=4;i++){const y=pad.t+(h-pad.t-pad.b)*i/4;chartCtx.beginPath();chartCtx.moveTo(pad.l,y);chartCtx.lineTo(w-pad.r,y);chartCtx.stroke();const val=max-(max-min)*i/4;chartCtx.fillText(val.toFixed(2),pad.l-7,y+4)}
+  names.forEach(name=>{const arr=data[name];chartCtx.strokeStyle=colors[name];chartCtx.lineWidth=name==='Gray'?2.4:1.8;chartCtx.beginPath();arr.forEach((v,i)=>{const x=pad.l+(w-pad.l-pad.r)*(arr.length===1?0:i/(arr.length-1));const y=pad.t+(h-pad.t-pad.b)*(max-v)/(max-min);if(i===0)chartCtx.moveTo(x,y);else chartCtx.lineTo(x,y)});chartCtx.stroke()});
+  chartCtx.textAlign='center';chartCtx.fillStyle='#475569';chartCtx.fillText('프로파일 위치', (pad.l+w-pad.r)/2,h-8);
+  let lx=pad.l; names.forEach(name=>{chartCtx.fillStyle=colors[name];chartCtx.fillRect(lx,7,14,3);chartCtx.fillStyle='#334155';chartCtx.textAlign='left';chartCtx.fillText(name,lx+18,12);lx+=65});
+}
+
+function renderDataset(){
+  els.datasetCount.textContent=dataset.length; const enabled=dataset.length>0;
+  els.downloadFeaturesBtn.disabled=els.downloadProfilesBtn.disabled=els.exportBackupBtn.disabled=els.clearDatasetBtn.disabled=!enabled;
+  if(!enabled){els.datasetBody.innerHTML='<tr><td colspan="10" class="empty">저장된 측정값이 없습니다.</td></tr>';return;}
+  els.datasetBody.innerHTML=dataset.map((d,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(d.meta.measurement_id)}</td><td>${escapeHtml(d.meta.sample_id)}</td><td>${escapeHtml(d.meta.material)}</td><td>${d.meta.repeat_no}</td><td>${escapeHtml(d.meta.light_source)}</td><td>${escapeHtml(d.meta.source_filename)}</td><td>${d.roi.w}×${d.roi.h}</td><td>${formatDate(d.meta.measured_at)}</td><td><button class="btn danger small" data-delete="${i}">삭제</button></td></tr>`).join('');
+  els.datasetBody.querySelectorAll('[data-delete]').forEach(btn=>btn.addEventListener('click',()=>{const i=Number(btn.dataset.delete);if(confirm(`${dataset[i].meta.measurement_id} 측정값을 삭제할까요?`)){dataset.splice(i,1);saveDataset()}}));
+}
+function formatDate(iso){try{return new Date(iso).toLocaleString('ko-KR')}catch{return iso}}
+function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function csvCell(v){const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
+function downloadText(name,text,type='text/csv;charset=utf-8;'){
+  const blob=new Blob(['\ufeff',text],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function dateName(){const d=new Date(),z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}`}
+
+function featureCsv(rows){
+  const metaKeys=['app_version','measurement_id','product_id','sample_id','material','repeat_no','light_source','thickness_mm','appearance','blank_applied','note','source_filename','profile_direction','normalization','measured_at'];
+  const featureKeys=[...new Set(rows.flatMap(r=>Object.keys(r.features)))]; const roiKeys=['roi_x','roi_y','roi_w','roi_h'];
+  const header=[...metaKeys,...roiKeys,...featureKeys]; const lines=[header.map(csvCell).join(',')];
+  rows.forEach(r=>{const obj={...r.meta,roi_x:r.roi.x,roi_y:r.roi.y,roi_w:r.roi.w,roi_h:r.roi.h,...r.features};lines.push(header.map(k=>csvCell(obj[k])).join(','))}); return lines.join('\n');
+}
+function profileCsv(rows){
+  const header=['measurement_id','sample_id','material','repeat_no','light_source','source_filename','position','R_raw','G_raw','B_raw','Gray_raw','R_norm','G_norm','B_norm','Gray_norm']; const lines=[header.join(',')];
+  rows.forEach(r=>{const n=r.profile.raw.Gray.length;for(let i=0;i<n;i++){const o={measurement_id:r.meta.measurement_id,sample_id:r.meta.sample_id,material:r.meta.material,repeat_no:r.meta.repeat_no,light_source:r.meta.light_source,source_filename:r.meta.source_filename,position:i,R_raw:r.profile.raw.R[i],G_raw:r.profile.raw.G[i],B_raw:r.profile.raw.B[i],Gray_raw:r.profile.raw.Gray[i],R_norm:r.profile.norm.R[i],G_norm:r.profile.norm.G[i],B_norm:r.profile.norm.B[i],Gray_norm:r.profile.norm.Gray[i]};lines.push(header.map(k=>csvCell(o[k])).join(','))}});return lines.join('\n');
+}
+
+els.downloadCurrentFeatureBtn.addEventListener('click',()=>{if(!currentResult)return;const m=metadata();const r={meta:m,roi:currentResult.profile.roiOriginal,features:currentResult.features,profile:currentResult.profile};downloadText(`${cleanToken(m.sample_id)}_R${m.repeat_no}_features.csv`,featureCsv([r]));});
+els.downloadCurrentProfileBtn.addEventListener('click',()=>{if(!currentResult)return;const m=metadata();const r={meta:m,roi:currentResult.profile.roiOriginal,features:currentResult.features,profile:currentResult.profile};downloadText(`${cleanToken(m.sample_id)}_R${m.repeat_no}_profile.csv`,profileCsv([r]));});
+els.downloadFeaturesBtn.addEventListener('click',()=>downloadText(`RGB_Model_Rebuild_Features_${dateName()}.csv`,featureCsv(dataset)));
+els.downloadProfilesBtn.addEventListener('click',()=>downloadText(`RGB_Model_Rebuild_Profiles_${dateName()}.csv`,profileCsv(dataset)));
+els.exportBackupBtn.addEventListener('click',()=>downloadText(`RGB_Model_Rebuild_Backup_${dateName()}.json`,JSON.stringify({app_version:APP_VERSION,exported_at:new Date().toISOString(),dataset},null,2),'application/json;charset=utf-8;'));
+els.importBackupInput.addEventListener('change',(e)=>{const f=e.target.files&&e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const p=JSON.parse(reader.result);const rows=Array.isArray(p)?p:p.dataset;if(!Array.isArray(rows))throw new Error('dataset 배열이 없습니다.');if(confirm(`백업 데이터 ${rows.length}건으로 현재 데이터를 교체할까요?`)){dataset=rows;saveDataset();setStatus(els.addStatus,'백업 데이터를 불러왔습니다.','ok')}}catch(err){alert('백업 파일을 읽지 못했습니다: '+err.message)}finally{e.target.value=''}};reader.readAsText(f);});
+els.clearDatasetBtn.addEventListener('click',()=>{if(confirm('누적 데이터 전체를 삭제할까요? 이 작업은 되돌릴 수 없습니다.')){dataset=[];saveDataset();setStatus(els.addStatus,'누적 데이터가 초기화되었습니다.','warn')}});
+
+window.addEventListener('resize',()=>{if(image)fitImageToCanvas()});
+drawImage(); resetAnalysisViews(); renderDataset();
+</script>
+</body>
+</html>
